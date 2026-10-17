@@ -3,7 +3,11 @@ name = "bender-wasm"
 description = "WebAssembly build of the bender-rs effect for the demo site"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

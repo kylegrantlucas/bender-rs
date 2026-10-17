@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04 keeps the glibc requirement low enough for older distros.
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
+          - target: aarch64-apple-darwin
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check tag matches the workspace version
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n1)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+            exit 1
+          fi
+
+      - name: Install GStreamer (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libwayland-dev libxkbcommon-dev
+      - name: Install GStreamer (macOS)
+        if: runner.os == 'macOS'
+        run: brew install gstreamer pkgconf
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }} -p bender-cli -p bender-gui
+
+      - name: Package
+        shell: bash
+        run: |
+          name="bender-${GITHUB_REF_NAME}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          cp target/${{ matrix.target }}/release/bender target/${{ matrix.target }}/release/bender-gui "dist/$name/"
+          cp -R presets README.md LICENSE-MIT LICENSE-APACHE "dist/$name/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- *.tar.gz > SHA256SUMS
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

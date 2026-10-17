@@ -643,6 +643,24 @@ pre {
   font-size: var(--step--1);
 }
 
+.cli-note a,
+.footer a {
+  color: var(--ink);
+  text-decoration-color: var(--wire-yellow);
+  text-underline-offset: 0.2em;
+}
+
+.cli-note a:hover,
+.footer a:hover {
+  color: var(--wire-yellow);
+}
+
+.cli-note a:focus-visible,
+.footer a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* ---- responsive ---- */
 
 @media (max-width: 60rem) {
