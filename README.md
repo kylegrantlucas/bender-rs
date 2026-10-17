@@ -1,16 +1,28 @@
 # bender-rs
 
+[![CI](https://github.com/kylegrantlucas/bender-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/kylegrantlucas/bender-rs/actions/workflows/ci.yml)
+[![Demo site](https://github.com/kylegrantlucas/bender-rs/actions/workflows/pages.yml/badge.svg)](https://kylegrantlucas.github.io/bender-rs/)
+[![Latest release](https://img.shields.io/github/v/release/kylegrantlucas/bender-rs?sort=semver)](https://github.com/kylegrantlucas/bender-rs/releases/latest)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
+[![Rust 1.96+](https://img.shields.io/badge/rust-1.96%2B-orange?logo=rust)](https://www.rust-lang.org/tools/install)
+
 bender-rs is a video filter that imitates circuit bending, the practice of soldering wires across a camera processor or video mixer until the picture tears, rolls, smears and changes colour. Each bend models one stage of an analog-to-digital video path, from the sync separator to the colour decoder, and breaks it the way a stray wire would.
 
-[Try it in your browser](https://kylegrantlucas.github.io/bender-rs/) with a test card, your webcam, or your own image or video. When you like what you see, the page gives you the command that renders the same look onto a full-length file.
+![The demo test card and the eight bundled presets, animated](docs/presets.webp)
 
-![The demo site bending a test card with the meltdown preset](docs/screenshot.png)
+<sub>Top left is the unbent test card. The other tiles are the bundled presets, each rendered from that clip with `bender --preset presets/<name>.json`.</sub>
 
-It comes in three parts:
+## Try it in your browser
+
+The [demo site](https://kylegrantlucas.github.io/bender-rs/) runs the effect as WebAssembly on a test card, your webcam, or your own image or video. Switch bends on along the signal path, tune them, and copy the matching `bender` command to render a full-length file with sound.
+
+[![The demo site with the meltdown preset applied](docs/screenshot.png)](https://kylegrantlucas.github.io/bender-rs/)
+
+## What's included
 
 - `bender`, a command-line renderer for videos and images
 - `bender-gui`, a desktop app with a live preview and a render button
-- the effect core, a plain Rust library with no media dependencies, which also runs the browser demo as WebAssembly
+- the effect core, a plain Rust library with no media dependencies, which also runs the browser demo
 
 ## Install
 
@@ -99,7 +111,33 @@ The app plays the source through the effect while you adjust it, with sound. It 
 
 ## The bends
 
-The effect runs these stages in order. Each is off until you enable it.
+The effect runs these stages in order, grouped here by the part of the hardware they model. Each is off until you enable it.
+
+```mermaid
+flowchart TB
+  in([Video in]) --> TBC
+  subgraph TBC[TBC / sync]
+    direction LR
+    sync[sync]
+  end
+  subgraph ADC[ADC]
+    direction LR
+    clock[clock] --> data[data]
+  end
+  subgraph RAM[Frame store]
+    direction LR
+    hold[hold] --> address_a[address_a] --> address_b[address_b]
+  end
+  subgraph DAC[DAC]
+    direction LR
+    invert[invert] --> rail[rail] --> osc[osc]
+  end
+  subgraph Enc[Colour encoder]
+    direction LR
+    burst[burst] --> bleed[bleed]
+  end
+  TBC --> ADC --> RAM --> DAC --> Enc --> out([Video out])
+```
 
 | ID | Circuit | What goes wrong |
 | --- | --- | --- |
