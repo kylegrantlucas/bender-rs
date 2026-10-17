@@ -204,7 +204,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-The release workflow builds the Linux and macOS archives, checks that the tag matches the crate version, and publishes a GitHub release with checksums.
+The release workflow builds the Linux and macOS archives, checks that the tag matches the crate version, and publishes a GitHub release with checksums. To test the builds without publishing, start the Release workflow by hand from the Actions tab; the archives are attached to that run as artifacts.
 
 ## License
 
