@@ -1,5 +1,7 @@
-use bender::settings::{Axis, BridgeMode, DataTarget, InvertMode, StuckMode};
-use bender::{BendEffect, BendState, PixelOrder, PresetError, YiqPlanes};
+use bender::settings::{
+    Axis, BridgeMode, DataTarget, Decoder, InvertMode, RetinaEdge, RetinaPalette, StuckMode,
+};
+use bender::{BendEffect, BendState, PixelOrder, PresetError, StageId, YiqPlanes, setting_groups};
 
 const W: usize = 64;
 const H: usize = 48;
@@ -187,4 +189,179 @@ fn presets_round_trip_and_validate() {
         d.set_by_id("nope.x", "1"),
         Err(PresetError::UnknownSetting(_))
     ));
+}
+
+fn luma(p: &[u8]) -> f32 {
+    (0.299 * f32::from(p[0]) + 0.587 * f32::from(p[1]) + 0.114 * f32::from(p[2])) / 255.0
+}
+
+fn flat_planes(y: f32, i: f32, q: f32) -> YiqPlanes {
+    let mut p = YiqPlanes::new(W, H);
+    p.y.fill(y);
+    p.i.fill(i);
+    p.q.fill(q);
+    p
+}
+
+#[test]
+fn stage_ids_match_groups() {
+    let names: Vec<&str> = StageId::ALL.iter().map(|id| id.name()).collect();
+    let groups: Vec<&str> = setting_groups().iter().map(|g| g.id).collect();
+    assert_eq!(names, groups);
+}
+
+#[test]
+fn order_normalizes_and_drives_chain() {
+    let e = BendEffect::from_json(r#"{"order":["invert","bogus","invert","data"]}"#).unwrap();
+    assert_eq!(e.order.stages()[..2], [StageId::Invert, StageId::Data]);
+    assert_eq!(e.order.stages().len(), 22);
+
+    let mut d = BendEffect::default();
+    assert!(matches!(
+        d.set_by_id("order", "nope"),
+        Err(PresetError::InvalidValue { .. })
+    ));
+
+    let mut e = BendEffect::default();
+    e.data.enabled = true;
+    let s = &mut e.data.settings;
+    s.target = DataTarget::Luma;
+    s.swap_a = 3;
+    s.swap_b = 3;
+    s.stuck_bit = 7;
+    s.stuck_mode = StuckMode::High;
+    s.coverage = 1.0;
+    e.invert.enabled = true;
+    e.invert.settings.mode = InvertMode::InvertLuma;
+    e.invert.settings.mix = 1.0;
+    let src = grey_gradient();
+
+    let out = run(&e, &src, 0, &mut BendState::default());
+    for p in out.as_chunks::<4>().0 {
+        let l = luma(p);
+        assert!(l <= 0.51, "default order luma {l}");
+    }
+
+    e.set_by_id("order", "invert,data").unwrap();
+    let out = run(&e, &src, 0, &mut BendState::default());
+    for p in out.as_chunks::<4>().0 {
+        let l = luma(p);
+        assert!(l >= 0.49, "invert-first luma {l}");
+    }
+}
+
+#[test]
+fn stateful_stages_follow_frame_continuity() {
+    let f0 = gradient(0);
+    let f1 = gradient(0x55);
+    let f5 = gradient(0xaa);
+    for id in ["hold", "sensor", "isp", "mosh", "feedback"] {
+        let mut e = BendEffect::default();
+        e.set_by_id(&format!("{id}.enabled"), "true").unwrap();
+        let mut state = BendState::default();
+        run(&e, &f0, 0, &mut state);
+        let out1 = run(&e, &f1, 1, &mut state);
+        let out1b = run(&e, &f1, 1, &mut state);
+        assert_eq!(out1, out1b, "{id}: re-render of frame 1");
+        let out5 = run(&e, &f5, 5, &mut state);
+        assert_eq!(
+            out5,
+            run(&e, &f5, 5, &mut BendState::default()),
+            "{id}: frame 5 after a jump"
+        );
+    }
+}
+
+#[test]
+fn counter_pitch_shears_linear_addresses() {
+    let src = gradient(0);
+    let ident = run(&BendEffect::default(), &src, 0, &mut BendState::default());
+    let mut e = BendEffect::default();
+    e.counter.enabled = true;
+    e.counter.settings.pitch = 3;
+    let out = run(&e, &src, 0, &mut BendState::default());
+    for y in 0..H {
+        for x in 0..W {
+            let a = (y * W + x + 3 * y) % (W * H);
+            let o = &out[(y * W + x) * 4..][..4];
+            let r = &ident[((a / W) * W + a % W) * 4..][..4];
+            assert_eq!(o, r, "x={x} y={y}");
+        }
+    }
+}
+
+#[test]
+fn composite_round_trips_flat_fields() {
+    for decoder in [Decoder::Notch, Decoder::Comb] {
+        let mut e = BendEffect::default();
+        e.composite.enabled = true;
+        e.composite.settings.decoder = decoder;
+        e.composite.settings.trap = 1.0;
+        let mut p = flat_planes(0.5, 0.2, -0.1);
+        e.apply_yiq(&mut p, 0, &mut BendState::default());
+        for r in 0..H {
+            for x in 16..48 {
+                let k = r * W + x;
+                assert!((p.y[k] - 0.5).abs() <= 0.02, "{decoder:?} y {}", p.y[k]);
+                assert!((p.i[k] - 0.2).abs() <= 0.03, "{decoder:?} i {}", p.i[k]);
+                assert!((p.q[k] + 0.1).abs() <= 0.03, "{decoder:?} q {}", p.q[k]);
+            }
+        }
+    }
+}
+
+#[test]
+fn dct_preserves_flat_frames() {
+    let mut e = BendEffect::default();
+    e.dct.enabled = true;
+    e.dct.settings.quality = 90;
+    let mut p = flat_planes(0.5, 0.1, -0.05);
+    e.apply_yiq(&mut p, 0, &mut BendState::default());
+    for k in 0..W * H {
+        assert!((p.y[k] - 0.5).abs() <= 0.01, "y {}", p.y[k]);
+        assert!((p.i[k] - 0.1).abs() <= 0.01, "i {}", p.i[k]);
+        assert!((p.q[k] + 0.05).abs() <= 0.01, "q {}", p.q[k]);
+    }
+}
+
+#[test]
+fn retina_quantizes_to_levels() {
+    let mut e = BendEffect::default();
+    e.retina.enabled = true;
+    let s = &mut e.retina.settings;
+    s.palette = RetinaPalette::Grey;
+    s.dither = 0.0;
+    s.edge_mode = RetinaEdge::Off;
+    s.levels = 3;
+    let mut p = YiqPlanes::new(W, H);
+    for r in 0..H {
+        for x in 0..W {
+            p.y[r * W + x] = (x + r) as f32 / (W + H - 2) as f32;
+        }
+    }
+    e.apply_yiq(&mut p, 0, &mut BendState::default());
+    let mut values: Vec<u32> = p.y.iter().map(|v| v.to_bits()).collect();
+    values.sort_unstable();
+    values.dedup();
+    assert!(values.len() <= 3, "{} distinct levels", values.len());
+}
+
+#[test]
+fn bundled_presets_load() {
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../presets");
+    let mut count = 0;
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().is_none_or(|x| x != "json") {
+            continue;
+        }
+        let name = path.display();
+        let text = std::fs::read_to_string(&path).unwrap();
+        let compact: String = text.chars().filter(|c| !c.is_whitespace()).collect();
+        assert!(compact.contains(r#""version":2"#), "{name}");
+        let e = BendEffect::from_json(&text).unwrap_or_else(|err| panic!("{name}: {err}"));
+        assert_eq!(e.version, 2, "{name}");
+        count += 1;
+    }
+    assert!(count > 0);
 }

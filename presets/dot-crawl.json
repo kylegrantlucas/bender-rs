@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "seed": 0,
+  "composite": {
+    "enabled": true,
+    "decoder": "notch",
+    "trap": 0.5,
+    "detune": 0.12,
+    "ghost": 0.35,
+    "noise": 0.08,
+    "peaking": 0.8
+  }
+}

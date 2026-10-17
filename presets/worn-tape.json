@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "seed": 6,
+  "tape": {
+    "enabled": true,
+    "head_switch": 0.8,
+    "flagging": 0.4,
+    "tracking": 0.6,
+    "dropout": 0.4,
+    "comet": 0.3,
+    "luma_bw": 0.7,
+    "chroma_noise": 0.7,
+    "jitter": 0.4
+  },
+  "composite": {
+    "enabled": true,
+    "decoder": "notch",
+    "trap": 0.85
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "seed": 2,
+  "order": [
+    "sensor",
+    "retina",
+    "isp",
+    "tape",
+    "sync",
+    "clock",
+    "data",
+    "dct",
+    "mosh",
+    "hold",
+    "counter",
+    "address_a",
+    "address_b",
+    "invert",
+    "rail",
+    "osc",
+    "burst",
+    "bleed",
+    "composite",
+    "scan",
+    "feedback",
+    "colorize"
+  ],
+  "feedback": {
+    "enabled": true,
+    "amount": 0.85,
+    "zoom": 1.04,
+    "rotate": 3,
+    "hue_shift": 12,
+    "gain": 1.05,
+    "blur": 0.3,
+    "key": 0.35
+  },
+  "colorize": {
+    "enabled": true,
+    "mode": "bands",
+    "bands": 5,
+    "hue": 200,
+    "spread": 1,
+    "saturation": 0.7,
+    "mix": 0.6
+  }
+}

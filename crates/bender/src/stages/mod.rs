@@ -1,38 +1,36 @@
-//! Individual bend stages, applied in signal-chain order by `effect::run_chain`.
+//! Individual bend stages, dispatched in [`crate::BendEffect::order`] by `effect::run_chain`.
 
 pub(crate) mod address;
 pub(crate) mod bleed;
 pub(crate) mod burst;
 pub(crate) mod clock;
+pub(crate) mod colorize;
+pub(crate) mod composite;
+pub(crate) mod counter;
 pub(crate) mod data;
+pub(crate) mod dct;
+pub(crate) mod feedback;
 pub(crate) mod hold;
 pub(crate) mod invert;
+pub(crate) mod isp;
+pub(crate) mod memory;
+pub(crate) mod mosh;
 pub(crate) mod osc;
 pub(crate) mod rail;
+pub(crate) mod retina;
+pub(crate) mod scan;
+pub(crate) mod sensor;
 pub(crate) mod sync;
+pub(crate) mod tape;
 
 use crate::random::Rng;
+use crate::settings::StageId;
 
-pub(crate) const SYNC: u64 = 1;
-pub(crate) const CLOCK: u64 = 2;
-pub(crate) const DATA: u64 = 3;
-pub(crate) const HOLD: u64 = 4;
-pub(crate) const ADDRESS_A: u64 = 5;
-pub(crate) const ADDRESS_B: u64 = 6;
-// Invert, rail, osc and bleed are deterministic; their ids are reserved to keep numbering stable.
-#[expect(dead_code, reason = "reserved stage id; stage draws no randomness")]
-pub(crate) const INVERT: u64 = 7;
-#[expect(dead_code, reason = "reserved stage id; stage draws no randomness")]
-pub(crate) const RAIL: u64 = 8;
-#[expect(dead_code, reason = "reserved stage id; stage draws no randomness")]
-pub(crate) const OSC: u64 = 9;
-pub(crate) const BURST: u64 = 10;
-#[expect(dead_code, reason = "reserved stage id; stage draws no randomness")]
-pub(crate) const BLEED: u64 = 11;
-
-/// Per-stage, per-frame random stream: `Rng::new(seed as u32 as u64).mix(stage).mix(frame)`.
-pub(crate) fn stage_rng(seed: i32, stage: u64, frame: u64) -> Rng {
-    Rng::new(u64::from(seed as u32)).mix(stage).mix(frame)
+/// Per-stage, per-frame random stream: `Rng::new(seed as u32 as u64).mix(stage id).mix(frame)`.
+pub(crate) fn stage_rng(seed: i32, stage: StageId, frame: u64) -> Rng {
+    Rng::new(u64::from(seed as u32))
+        .mix(stage.rng_id())
+        .mix(frame)
 }
 
 /// Linearly interpolated sample at fractional `x`, wrapping both taps horizontally.

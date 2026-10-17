@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "seed": 9,
+  "dct": {
+    "enabled": true,
+    "quality": 20,
+    "scramble": 0.02,
+    "dc_drift": 0.15,
+    "block_shuffle": 0.01
+  },
+  "mosh": {
+    "enabled": true,
+    "keyframe_rate": 0.01,
+    "search": 12,
+    "vector_gain": 1.5,
+    "residual": 0.2
+  }
+}

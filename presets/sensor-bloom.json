@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "seed": 4,
+  "sensor": {
+    "enabled": true,
+    "skew": 0.6,
+    "slip": 0.15,
+    "smear": 0.6,
+    "bloom": 0.5,
+    "fpn": 0.3
+  },
+  "isp": {
+    "enabled": true,
+    "hunt": 0.85,
+    "white_balance": 0.6,
+    "sharpen": 1.5,
+    "sharpen_radius": 2,
+    "noise": 0.3
+  }
+}

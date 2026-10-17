@@ -6,11 +6,11 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![Rust 1.96+](https://img.shields.io/badge/rust-1.96%2B-orange?logo=rust)](https://www.rust-lang.org/tools/install)
 
-bender-rs is a video filter that imitates circuit bending, the practice of soldering wires across a camera processor or video mixer until the picture tears, rolls, smears and changes colour. Each bend models one stage of an analog-to-digital video path, from the sync separator to the colour decoder, and breaks it the way a stray wire would.
+bender-rs is a video filter that imitates circuit bending, the practice of soldering wires across a camera processor or video mixer until the picture tears, rolls, smears and changes colour. Each bend models one stage of a video path, from the camera sensor through tape, sync, sampling, codec and frame store to the colour encoder, the monitor and a feedback loop, and breaks it the way a stray wire would.
 
-![The demo test card and the eight bundled presets, animated](docs/presets.webp)
+![The demo test card and the original eight bundled presets, animated](docs/presets.webp)
 
-<sub>Top left is the unbent test card. The other tiles are the bundled presets, each rendered from that clip with `bender --preset presets/<name>.json`.</sub>
+<sub>Top left is the unbent test card. The other tiles are the original eight bundled presets, each rendered from that clip with `bender --preset presets/<name>.json`.</sub>
 
 ## Try it in your browser
 
@@ -111,11 +111,19 @@ The app plays the source through the effect while you adjust it, with sound. It 
 
 ## The bends
 
-The effect runs these stages in order, grouped here by the part of the hardware they model. Each is off until you enable it.
+By default the effect runs these stages in this order, grouped here by the part of the hardware they model. Each is off until you enable it. A preset's `order` list, the arrows in the desktop app and the move buttons on the demo site rearrange them, so you can, for example, colourize the feedback loop's output instead of its input, or bend the frame store after the colour encoder.
 
 ```mermaid
 flowchart TB
-  in([Video in]) --> TBC
+  in([Video in]) --> Cam
+  subgraph Cam[Camera]
+    direction LR
+    sensor[sensor] --> retina[retina] --> isp[isp]
+  end
+  subgraph Tape[Tape]
+    direction LR
+    tape[tape]
+  end
   subgraph TBC[TBC / sync]
     direction LR
     sync[sync]
@@ -124,54 +132,79 @@ flowchart TB
     direction LR
     clock[clock] --> data[data]
   end
+  subgraph Codec[Codec]
+    direction LR
+    dct[dct] --> mosh[mosh]
+  end
   subgraph RAM[Frame store]
     direction LR
-    hold[hold] --> address_a[address_a] --> address_b[address_b]
+    hold[hold] --> counter[counter] --> address_a[address_a] --> address_b[address_b]
   end
-  subgraph DAC[DAC]
+  subgraph Amp[Proc amp / DAC]
     direction LR
-    invert[invert] --> rail[rail] --> osc[osc]
+    colorize[colorize] --> invert[invert] --> rail[rail] --> osc[osc]
   end
   subgraph Enc[Colour encoder]
     direction LR
     burst[burst] --> bleed[bleed]
   end
-  TBC --> ADC --> RAM --> DAC --> Enc --> out([Video out])
+  subgraph Mon[Monitor]
+    direction LR
+    composite[composite] --> scan[scan]
+  end
+  subgraph Loop[Loop]
+    direction LR
+    feedback[feedback]
+  end
+  Cam --> Tape --> TBC --> ADC --> Codec --> RAM --> Amp --> Enc --> Mon --> Loop --> out([Video out])
 ```
 
 | ID | Circuit | What goes wrong |
 | --- | --- | --- |
-| `sync` | Sync separator | Lines lose horizontal lock and tear, and the picture rolls |
-| `clock` | Pixel clock | Samples are held across pixels, the sample rate stretches and the clock stalls |
-| `data` | Data bus | Bits of each 8-bit sample are swapped or stuck high or low |
-| `hold` | Memory hold | Bands of rows keep the previous frame |
+| `sensor` | Image sensor | Rolling-shutter skew and slip, vertical smear and blooming from highlights, a mis-phased colour filter and fixed-pattern noise |
+| `retina` | Retina camera | A Game Boy Camera sensor: a tiny grid, edge enhancement and four dithered shades |
+| `isp` | Camera ISP | Auto-exposure pumps, white balance hunts, sharpening halos edges and gain noise rises |
+| `tape` | Tape transport | Head-switching skew, tracking noise, dropouts, soft luma and smeared colour-under chroma |
+| `sync` | Sync separator | Lines lose horizontal lock and drift, tears relock as they go down, the blanking bar shows and the picture rolls |
+| `clock` | Pixel clock | Samples are held across pixels, the sample rate stretches, the clock jitters and stalls |
+| `data` | Data bus | Bits of each 8-bit sample are swapped, wired together, stuck or latched late |
+| `dct` | DCT codec | 8×8 blocks with a bent quantizer table, scrambled coefficients, DC errors and misplaced macroblocks |
+| `mosh` | Datamosh | Keyframes are lost and the live motion drags the stale picture around |
+| `hold` | Memory hold | Bands, fields or whole frames keep the previous picture |
+| `counter` | Address counters | A wrong line pitch shears the picture, early counter resets tile it and the start address scrolls |
 | `address_a`, `address_b` | Address bridges | Frame-store address bits are forced or combined, which shuffles blocks of the image |
+| `colorize` | Colourizer | Luma is folded, sliced into bands and painted with hues behind a luma key |
 | `invert` | Inversion | Luma or chroma inverts, I and Q swap, or the image solarizes |
-| `rail` | Rail sag | Bright lines dim and shrink, highlights streak and mains hum rolls through |
-| `osc` | Oscillation | A self-oscillating op-amp draws drifting diagonal bars |
-| `burst` | Colour burst | Hue shifts and wobbles, saturation swings and colour drops out |
+| `rail` | Rail sag | Bright lines dim and shrink, highlights streak, mains hum rolls and bends lines, ripple draws bars |
+| `osc` | Oscillation | A self-oscillating op-amp draws drifting diagonal bars and rings after edges |
+| `burst` | Colour burst | Hue shifts and wobbles, alternate lines flip or lose colour, saturation swings and colour drops out |
 | `bleed` | Chroma bleed | Colour smears to the right of edges and slips out of register with luma |
+| `composite` | Composite link | A real NTSC signal through a cheap decoder: dot crawl, rainbows, ghosts and a detuned subcarrier |
+| `scan` | Scan processor | Scanlines lift with brightness into a relief of lines and a wobble bends the raster |
+| `feedback` | Feedback loop | The last output returns zoomed, rotated and hue-shifted, like a camera filming its own monitor |
 
 `bender --list-settings` documents every parameter.
 
 ## Presets
 
-A preset is a JSON file with a seed and one block per bend. Blocks you leave out stay disabled, and out-of-range values are clamped.
+A preset is a JSON file with a seed and one block per bend. Blocks you leave out stay disabled, and out-of-range values are clamped. An optional `order` lists stage IDs to run first; the rest follow in the default order.
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "seed": 3,
   "sync": { "enabled": true, "h_skew": 0.0, "h_jitter": 0.035, "tear_rate": 0.45, "v_roll": 0.35 },
   "rail": { "enabled": true, "sag": 0.35, "streak": 0.4, "hum": 0.5 }
 }
 ```
 
-That is `presets/rolling-tear.json`. The directory has a few other starting points: `address-shuffle`, `bit-rot`, `burst-drift`, `chroma-bleed`, `frozen-store`, `meltdown` and `op-amp-howl`. The demo site, the desktop app and `--dump-preset` all write this format.
+That is `presets/rolling-tear.json`. The directory has other starting points: `address-shuffle`, `bit-rot`, `burst-drift`, `chroma-bleed`, `datamosh`, `dot-crawl`, `feedback-tunnel`, `frozen-store`, `meltdown`, `op-amp-howl`, `pocket-camera`, `scan-lines`, `sensor-bloom`, `stride-shear` and `worn-tape`. The demo site, the desktop app and `--dump-preset` all write this format. On the command line, `--set order=feedback,colorize` reorders the chain.
+
+Version 1 presets still load, but `sync` and `rail` gained settings whose defaults change how those presets look: correlated jitter (`jitter_smooth`), a visible blanking bar (`blanking`) and hum-bent lines (`hum_bend`). Set `jitter_smooth` and `hum_bend` to 0 and `blanking` to false to get closer to the old look.
 
 ## Using the library
 
-The `bender` crate has no media dependencies. Give it RGBA8 or YIQ frames with a frame number, and keep one `BendState` per stream: it holds the emulated frame store that memory hold reads back from. For GStreamer pipelines written in Rust, `bender-gst` provides the effect as an element, `BenderFilterElement`.
+The `bender` crate has no media dependencies. Give it RGBA8 or YIQ frames with a frame number, and keep one `BendState` per stream: it holds the memory of the stages that look back in time (the frame store, the sensor, the ISP loops, the datamosh references and the feedback loop). For GStreamer pipelines written in Rust, `bender-gst` provides the effect as an element, `BenderFilterElement`.
 
 | Crate | Contents |
 | --- | --- |

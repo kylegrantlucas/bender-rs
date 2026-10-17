@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use bender::{BendEffect, SettingKind, SettingValue, setting_groups};
+use bender::{BendEffect, SettingKind, SettingValue, StageId};
 use bender_gst::gst::ClockTime;
 use bender_gst::{OutputCodec, PreviewPipeline, RenderJob, RenderSettings, RenderStatus};
 use eframe::egui;
@@ -173,16 +173,41 @@ impl BenderApp {
             }
         });
         ui.separator();
-        for group in setting_groups() {
-            let header = egui::CollapsingHeader::new(group.label).id_salt(group.id);
-            header
-                .show(ui, |ui| {
-                    for desc in &group.settings {
-                        setting_widget(ui, desc, &mut effect).on_hover_text(desc.description);
-                    }
-                })
-                .header_response
-                .on_hover_text(group.description);
+        let stages = effect.order.stages().to_vec();
+        let len = stages.len();
+        let mut moved: Option<(StageId, isize)> = None;
+        for (pos, id) in stages.into_iter().enumerate() {
+            let group = bender::group(id);
+            egui::collapsing_header::CollapsingState::load_with_default_open(
+                ui.ctx(),
+                ui.make_persistent_id(group.id),
+                false,
+            )
+            .show_header(ui, |ui| {
+                ui.label(group.label).on_hover_text(group.description);
+                if ui
+                    .add_enabled(pos > 0, egui::Button::new("↑").small())
+                    .on_hover_text("Move earlier")
+                    .clicked()
+                {
+                    moved = Some((id, -1));
+                }
+                if ui
+                    .add_enabled(pos + 1 < len, egui::Button::new("↓").small())
+                    .on_hover_text("Move later")
+                    .clicked()
+                {
+                    moved = Some((id, 1));
+                }
+            })
+            .body(|ui| {
+                for desc in &group.settings {
+                    setting_widget(ui, desc, &mut effect).on_hover_text(desc.description);
+                }
+            });
+        }
+        if let Some((id, delta)) = moved {
+            effect.order.move_stage(id, delta);
         }
         if effect != *self.shared.settings.read().unwrap() {
             self.set_effect(effect);

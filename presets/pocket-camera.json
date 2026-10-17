@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "seed": 0,
+  "retina": {
+    "enabled": true,
+    "resolution": 112,
+    "edge_mode": "two_d",
+    "edge": 3,
+    "levels": 4,
+    "dither": 1.0,
+    "palette": "dmg"
+  }
+}

@@ -1,5 +1,6 @@
 //! Starved supply rail: bright rows sag in gain and width, highlights smear
-//! to the right, and mains hum rolls a dark bar through the picture.
+//! to the right, mains hum rolls a dark bar through the picture and bends the
+//! lines, and ripple at the pixel-fetch rate paints fixed vertical bars.
 
 use std::f32::consts::TAU;
 
@@ -18,6 +19,7 @@ pub(crate) fn apply(s: &RailSag, n: u64, planes: &mut YiqPlanes, scratch: &mut Y
     let half = w as f32 / 2.0;
     let k = (s.streak > 0.0).then(|| (-1.0f32 / (s.streak * w as f32 * 0.25)).exp());
     let frame_phase = (n as f64 * 0.01).rem_euclid(1.0) as f32;
+    let bar_period = s.bar_period.max(2) as usize;
 
     let src = &*planes;
     scratch
@@ -32,8 +34,17 @@ pub(crate) fn apply(s: &RailSag, n: u64, planes: &mut YiqPlanes, scratch: &mut Y
             let m = ys.iter().sum::<f32>() / w as f32;
             let gain = 1.0 - 0.5 * s.sag * m;
             let scale = 1.0 - 0.15 * s.sag * m;
+            let dx = if s.hum > 0.0 {
+                s.hum
+                    * s.hum_bend
+                    * 0.02
+                    * w as f32
+                    * (TAU * (r as f32 / h as f32 + frame_phase)).cos()
+            } else {
+                0.0
+            };
             for x in 0..w {
-                let sx = (x as f32 - half) / scale + half;
+                let sx = (x as f32 - half) / scale + half + dx;
                 if sx < 0.0 || sx > (w - 1) as f32 {
                     yo[x] = 0.0;
                     io[x] = 0.0;
@@ -59,6 +70,16 @@ pub(crate) fn apply(s: &RailSag, n: u64, planes: &mut YiqPlanes, scratch: &mut Y
                 let wave = 0.5 + 0.5 * (TAU * (r as f32 / h as f32 + frame_phase)).sin();
                 let hum = 1.0 - 0.3 * s.hum * wave;
                 yo.iter_mut().for_each(|y| *y *= hum);
+            }
+            if s.bars > 0.0 {
+                let amp = s.bars * 0.1;
+                for (x, y) in yo.iter_mut().enumerate() {
+                    *y += if x % bar_period < bar_period / 2 {
+                        amp
+                    } else {
+                        -amp
+                    };
+                }
             }
         });
     std::mem::swap(planes, scratch);

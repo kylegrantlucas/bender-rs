@@ -4,7 +4,7 @@
 use rayon::prelude::*;
 
 use crate::planes::YiqPlanes;
-use crate::settings::{AddressBridge, Axis, BridgeMode};
+use crate::settings::{AddressBridge, Axis, BridgeMode, StageId};
 use crate::stages::stage_rng;
 
 const BAND: usize = 8;
@@ -13,7 +13,7 @@ const BAND: usize = 8;
 pub(crate) fn apply(
     s: &AddressBridge,
     seed: i32,
-    stage_id: u64,
+    stage: StageId,
     n: u64,
     planes: &mut YiqPlanes,
     scratch: &mut YiqPlanes,
@@ -53,7 +53,7 @@ pub(crate) fn apply(
         .zip(scratch.q.par_chunks_mut(w))
         .enumerate()
         .for_each(|(r, ((yo, io), qo))| {
-            let active = stage_rng(seed, stage_id, n)
+            let active = stage_rng(seed, stage, n)
                 .mix((r / BAND) as u64)
                 .chance(s.coverage);
             for x in 0..w {

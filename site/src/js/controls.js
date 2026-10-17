@@ -82,33 +82,37 @@ function jumperGraphic() {
 /**
  * Builds the schematic and stage panel.
  * `onChange(id, value)` is called for every edit; `onSelect(groupId)` when a
- * circuit is selected.
+ * circuit is selected; `onMove(groupId, delta)` to move a circuit in the chain.
  */
-export function buildControls({ schema, schematic, panel, onChange, onSelect }) {
+export function buildControls({ schema, schematic, panel, onChange, onSelect, onMove }) {
   const jumpers = new Map();
   const chips = new Map();
+  const circuits = new Map();
 
   schematic.append(el("li", { class: "terminal in" }, el("span", { text: "In" })));
-  schema.groups.forEach((group, index) => {
+  schema.groups.forEach((group) => {
     const enabledId = group.settings[0].id;
     const input = el("input", { type: "checkbox", "aria-label": `Bend ${group.label}` });
     input.addEventListener("change", () => onChange(enabledId, input.checked));
     const jumper = el("label", { class: "jumper" }, input, jumperGraphic());
-    jumper.style.setProperty("--wire", `var(${WIRES[index % WIRES.length]})`);
+    const ref = el("span", { class: "chip-ref" });
 
     const body = el(
       "button",
       { type: "button", class: "chip-body", "aria-controls": panel.id },
-      el("span", { class: "chip-ref", text: `U${index + 1}` }),
+      ref,
       el("span", { class: "chip-name", text: group.label }),
     );
     body.addEventListener("click", () => onSelect(group.id));
 
-    schematic.append(el("li", { class: "circuit" }, el("div", { class: "chip" }, jumper, body)));
+    const li = el("li", { class: "circuit" }, el("div", { class: "chip" }, jumper, body));
+    schematic.append(li);
+    circuits.set(group.id, { li, ref, jumper });
     jumpers.set(group.id, input);
     chips.set(group.id, body);
   });
-  schematic.append(el("li", { class: "terminal out" }, el("span", { text: "Out" })));
+  const outTerminal = el("li", { class: "terminal out" }, el("span", { text: "Out" }));
+  schematic.append(outTerminal);
 
   let panelGroup = null;
   let panelInputs = [];
@@ -127,6 +131,11 @@ export function buildControls({ schema, schematic, panel, onChange, onSelect }) 
       knobs.append(buildKnob(setting));
     }
 
+    const earlier = el("button", { type: "button", class: "control quiet", text: "Move earlier" });
+    earlier.addEventListener("click", () => onMove(group.id, -1));
+    const later = el("button", { type: "button", class: "control quiet", text: "Move later" });
+    later.addEventListener("click", () => onMove(group.id, 1));
+
     panel.replaceChildren(
       el(
         "div",
@@ -134,6 +143,7 @@ export function buildControls({ schema, schematic, panel, onChange, onSelect }) 
         el("h3", { text: group.label }),
         el("label", { class: "bend-toggle", for: "stage-enabled" }, toggle, `Bend this circuit`),
         el("p", { text: group.description }),
+        el("div", { class: "stage-move" }, earlier, later),
       ),
       knobs,
     );
@@ -215,6 +225,13 @@ export function buildControls({ schema, schematic, panel, onChange, onSelect }) 
     for (const group of schema.groups) {
       jumpers.get(group.id).checked = Boolean(getPath(effect, group.settings[0].id));
     }
+    effect.order.forEach((id, k) => {
+      const circuit = circuits.get(id);
+      if (!circuit) return;
+      schematic.insertBefore(circuit.li, outTerminal);
+      circuit.ref.textContent = `U${k + 1}`;
+      circuit.jumper.style.setProperty("--wire", `var(${WIRES[k % WIRES.length]})`);
+    });
     for (const { sync: s } of panelInputs) s(effect);
     const enabled = panelGroup && getPath(effect, `${panelGroup}.enabled`);
     panel.classList.toggle("is-off", !enabled);
@@ -240,6 +257,9 @@ export function buildControls({ schema, schematic, panel, onChange, onSelect }) 
 export function cliCommand(schema, effect) {
   const parts = ["bender -i input.mp4 -o bent.mp4"];
   if (effect.seed) parts.push(`--seed ${effect.seed}`);
+  if (effect.order.join(",") !== schema.defaults.order.join(",")) {
+    parts.push(`--set order=${effect.order.join(",")}`);
+  }
   for (const group of schema.groups) {
     if (!getPath(effect, group.settings[0].id)) continue;
     for (const setting of group.settings) {

@@ -1,58 +1,49 @@
-//! Glitched frame-store write-enable: bands of the frame store miss their
-//! write and keep showing (optionally fading) content from the previous frame.
+//! Glitched frame-store write-enable: bands, fields or whole frames of the
+//! store miss their write and keep showing (optionally fading) content from
+//! the previous frame.
 
 use rayon::prelude::*;
 
 use crate::planes::YiqPlanes;
-use crate::settings::MemoryHold;
-use crate::stages::{HOLD, stage_rng};
+use crate::settings::{HoldMode, MemoryHold, StageId};
+use crate::stages::memory::{Continuity, matching, store};
+use crate::stages::stage_rng;
 
-/// Frame-store contents carried between frames of one stream.
-#[derive(Default)]
-pub(crate) struct HoldHistory {
-    /// Output of the frame preceding `last_frame`.
-    ram_prev: Option<YiqPlanes>,
-    /// Output of `last_frame`.
-    ram_last: Option<YiqPlanes>,
-    last_frame: Option<u64>,
-}
-
-/// Replaces randomly un-written bands with the previous frame's output.
+/// Replaces un-written rows with the previous frame's output.
 pub(crate) fn apply(
     s: &MemoryHold,
     seed: i32,
     n: u64,
     planes: &mut YiqPlanes,
-    history: &mut HoldHistory,
+    memory: &mut Continuity<Option<YiqPlanes>>,
 ) {
-    match history.last_frame {
-        Some(last) if last == n => {}
-        Some(last) if n > 0 && last == n - 1 => {
-            std::mem::swap(&mut history.ram_prev, &mut history.ram_last);
-        }
-        _ => history.ram_prev = None,
-    }
-
-    let w = planes.width;
-    if let Some(prev) = history.ram_prev.as_ref()
-        && prev.width == w
-        && prev.height == planes.height
+    memory.advance(n);
+    let (before, after) = memory.split();
+    let (w, h) = (planes.width, planes.height);
+    if let Some(prev) = matching(before, w, h)
         && w > 0
     {
-        let band_len = s.band_height.max(1) as usize * w;
+        let band_rows = s.band_height.max(1) as usize;
+        let strobe_held = !n.is_multiple_of(s.strobe_period.max(1) as u64);
+        let frame = stage_rng(seed, StageId::Hold, n);
+        let field_held = [frame.mix(0).chance(s.rate), frame.mix(1).chance(s.rate)];
+        let held = |r: usize| match s.mode {
+            HoldMode::Bands => frame.mix((r / band_rows) as u64).chance(s.rate),
+            HoldMode::Fields => field_held[r & 1],
+            HoldMode::Strobe => strobe_held,
+        };
         let d = s.decay;
         planes
             .y
-            .par_chunks_mut(band_len)
-            .zip(planes.i.par_chunks_mut(band_len))
-            .zip(planes.q.par_chunks_mut(band_len))
+            .par_chunks_mut(w)
+            .zip(planes.i.par_chunks_mut(w))
+            .zip(planes.q.par_chunks_mut(w))
             .enumerate()
-            .for_each(|(band, ((ys, is), qs))| {
-                if !stage_rng(seed, HOLD, n).mix(band as u64).chance(s.rate) {
+            .for_each(|(r, ((ys, is), qs))| {
+                if !held(r) {
                     return;
                 }
-                let start = band * band_len;
-                let range = start..start + ys.len();
+                let range = r * w..(r + 1) * w;
                 for (o, p) in ys.iter_mut().zip(&prev.y[range.clone()]) {
                     *o = p * (1.0 - d) + 0.5 * d;
                 }
@@ -64,10 +55,5 @@ pub(crate) fn apply(
                 }
             });
     }
-
-    history
-        .ram_last
-        .get_or_insert_with(YiqPlanes::default)
-        .copy_from(planes);
-    history.last_frame = Some(n);
+    store(after, planes);
 }

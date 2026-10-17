@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "seed": 0,
+  "scan": {
+    "enabled": true,
+    "displace": 0.6,
+    "line_spacing": 4,
+    "thickness": 1,
+    "wobble": 0.2,
+    "wobble_freq": 0.002
+  }
+}

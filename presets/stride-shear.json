@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "seed": 0,
+  "counter": {
+    "enabled": true,
+    "pitch": 7,
+    "line_length": 0.8,
+    "scroll": 0.1
+  },
+  "hold": {
+    "enabled": true,
+    "mode": "strobe",
+    "strobe_period": 3,
+    "decay": 0.0
+  }
+}

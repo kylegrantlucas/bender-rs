@@ -483,7 +483,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "bender"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "rayon",
  "serde",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "bender-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bender",
  "bender-gst",
@@ -503,7 +503,7 @@ dependencies = [
 
 [[package]]
 name = "bender-gst"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bender",
  "gstreamer",
@@ -516,7 +516,7 @@ dependencies = [
 
 [[package]]
 name = "bender-gui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bender",
  "bender-gst",
@@ -529,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "bender-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bender",
  "serde_json",

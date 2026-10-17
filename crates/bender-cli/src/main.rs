@@ -163,6 +163,11 @@ fn list_settings() {
         "{:<28} int  default={} — random seed",
         "seed", defaults.seed
     );
+    println!(
+        "{:<28} list default={} — stage order; listed stages run first, the rest follow in default order",
+        "order",
+        bender::ChainOrder::default()
+    );
     for group in setting_groups() {
         for d in &group.settings {
             let kind = match d.kind {

@@ -11,6 +11,14 @@ const PRESETS = [
   { file: "burst-drift", name: "Burst drift", blurb: "The colour decoder loses phase; hues swim and drop out." },
   { file: "chroma-bleed", name: "Chroma bleed", blurb: "A narrow colour path smears hues right and off their edges." },
   { file: "meltdown", name: "Meltdown", blurb: "Eight circuits bent at once." },
+  { file: "sensor-bloom", name: "Sensor bloom", blurb: "A smeared CCD with a hunting auto-exposure." },
+  { file: "pocket-camera", name: "Pocket camera", blurb: "A Game Boy Camera retina, dithered to four greens." },
+  { file: "worn-tape", name: "Worn tape", blurb: "Head switching, tracking noise and dropouts." },
+  { file: "dot-crawl", name: "Dot crawl", blurb: "A real composite signal through a cheap decoder." },
+  { file: "datamosh", name: "Datamosh", blurb: "Lost keyframes drag the picture with its own motion." },
+  { file: "stride-shear", name: "Stride shear", blurb: "Bent address counters shear and tile the store." },
+  { file: "feedback-tunnel", name: "Feedback tunnel", blurb: "A camera pointed at its own monitor, colourized." },
+  { file: "scan-lines", name: "Scan lines", blurb: "Rutt/Etra scanlines lifted by brightness." },
 ];
 const FIRST_PRESET = "address-shuffle";
 
@@ -83,6 +91,16 @@ function editSetting(id, value) {
   if (id.endsWith(".enabled") && value) select(id.split(".")[0]);
 }
 
+function moveStage(id, delta) {
+  const next = structuredClone(state.effect);
+  const i = next.order.indexOf(id);
+  if (i < 0) return;
+  const j = Math.min(Math.max(i + delta, 0), next.order.length - 1);
+  [next.order[i], next.order[j]] = [next.order[j], next.order[i]];
+  setActivePreset(null);
+  commitEffect(next);
+}
+
 function select(groupId) {
   if (state.selected === groupId) return;
   state.selected = groupId;
@@ -104,8 +122,8 @@ async function loadPreset(file) {
     state.engine.reset();
     commitEffect(preset);
     setActivePreset(file);
-    const firstOn = state.engine.schema.groups.find((g) => state.effect[g.id]?.enabled);
-    if (firstOn) select(firstOn.id);
+    const firstOn = state.effect.order.find((id) => state.effect[id]?.enabled);
+    if (firstOn) select(firstOn);
   } catch (err) {
     showMessage(`Preset ${file} failed to load: ${err.message}`, true);
   }
@@ -139,7 +157,8 @@ function render(frame) {
   previewCtx.putImageData(state.engine.process(pixels.data, w, h, frame), 0, 0);
 }
 
-// The effect's temporal bends (memory hold) need consecutive frame numbers, so
+// The effect's temporal bends (sensor, ISP loops, datamosh, memory hold,
+// feedback) need consecutive frame numbers, so
 // the effect frame advances by exactly one per new source picture, never by
 // wall-clock jumps; a slow device slows the test card instead of skipping.
 function tick(now) {
@@ -330,6 +349,7 @@ async function main() {
     panel: $("stage-panel"),
     onChange: editSetting,
     onSelect: select,
+    onMove: moveStage,
   });
   state.effect = state.engine.getPreset();
   select(state.engine.schema.groups[0].id);
