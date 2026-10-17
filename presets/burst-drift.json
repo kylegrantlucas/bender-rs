@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "seed": 8,
+  "invert": {
+    "enabled": true,
+    "mode": "swap_iq",
+    "threshold": 0.5,
+    "mix": 0.5
+  },
+  "burst": {
+    "enabled": true,
+    "phase": 60.0,
+    "wobble": 40.0,
+    "saturation": 1.8,
+    "killer_rate": 0.12
+  }
+}

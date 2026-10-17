@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "seed": 11,
+  "clock": {
+    "enabled": true,
+    "sample_hold": 3,
+    "stretch": 1.0,
+    "glitch_rate": 0.04
+  },
+  "data": {
+    "enabled": true,
+    "target": "both",
+    "swap_a": 7,
+    "swap_b": 5,
+    "stuck_bit": 6,
+    "stuck_mode": "invert",
+    "coverage": 0.55
+  }
+}

@@ -1,0 +1,46 @@
+/* Design tokens: a service schematic drawn on Prussian-blue drafting film,
+   with hookup-wire colours for the bends. */
+:root {
+  /* colour */
+  --film: #0f2a5c;
+  --film-deep: #0a1f47;
+  --film-raised: #163671;
+  --ink: #dbe6f5;
+  --ink-muted: #95abd0;
+  --ink-faint: rgb(219 230 245 / 0.14);
+  --grid: rgb(219 230 245 / 0.06);
+  --wire-red: #ff5a47;
+  --wire-yellow: #ffcb45;
+  --wire-green: #5fd38d;
+  --wire-white: #f4f7fb;
+  --focus: #ffcb45;
+  --danger: #ff8f82;
+
+  /* type */
+  --font-ui: "B612", "Segoe UI", system-ui, sans-serif;
+  --font-figures: "B612 Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5625rem;
+  --step-4: clamp(2.6rem, 6vw, 4.5rem);
+  --leading: 1.55;
+
+  /* space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.5rem;
+  --space-7: 4rem;
+
+  /* shape */
+  --line: 1.5px;
+  --radius-pin: 2px;
+  --radius-control: 4px;
+  --page-max: 84rem;
+
+  /* motion */
+  --wire-draw: 420ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}

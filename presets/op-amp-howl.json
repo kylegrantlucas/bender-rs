@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "seed": 0,
+  "osc": {
+    "enabled": true,
+    "target": "both",
+    "frequency": 0.03,
+    "slant": 0.2,
+    "drift": 0.3,
+    "amplitude": 0.35,
+    "luma_coupling": 0.4
+  },
+  "burst": {
+    "enabled": true,
+    "phase": 0.0,
+    "wobble": 25.0,
+    "saturation": 1.3,
+    "killer_rate": 0.0
+  }
+}

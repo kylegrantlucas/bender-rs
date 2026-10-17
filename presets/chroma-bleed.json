@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "seed": 0,
+  "bleed": {
+    "enabled": true,
+    "smear": 0.045,
+    "shift": 0.02
+  }
+}

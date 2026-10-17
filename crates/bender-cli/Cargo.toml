@@ -1,0 +1,17 @@
+[package]
+name = "bender-cli"
+description = "Command-line renderer for bender-rs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "bender"
+path = "src/main.rs"
+doc = false
+
+[dependencies]
+bender.workspace = true
+bender-gst.workspace = true
+clap.workspace = true
+env_logger.workspace = true

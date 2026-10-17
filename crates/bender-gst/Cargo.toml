@@ -1,0 +1,15 @@
+[package]
+name = "bender-gst"
+description = "GStreamer integration for bender-rs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bender.workspace = true
+gstreamer.workspace = true
+gstreamer-base.workspace = true
+gstreamer-video.workspace = true
+gstreamer-app.workspace = true
+thiserror.workspace = true
+log.workspace = true

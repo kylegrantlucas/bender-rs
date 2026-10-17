@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bender-rs: circuit-bent video, emulated</title>
+    <meta
+      name="description"
+      content="bender-rs emulates circuit-bent video hardware in Rust. Bend sync, pixel clock, data and address lines live in your browser, then render the same preset with the CLI."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono&display=swap"
+    />
+    <link rel="stylesheet" href="styles/tokens.css" />
+    <link rel="stylesheet" href="styles/site.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <header class="masthead">
+      <h1 class="wordmark">bender-rs</h1>
+      <p class="lede">
+        A video filter that behaves like a camera processor with wires soldered
+        across its circuit board. Bend a circuit below and watch the picture
+        break the way real hardware does.
+      </p>
+    </header>
+
+    <main>
+      <section class="bench" aria-label="Live preview">
+        <div class="scope">
+          <div class="screen">
+            <canvas id="preview" width="640" height="480" aria-label="Bent preview"></canvas>
+            <p class="screen-message" id="screen-message" role="status">Loading the effect engine…</p>
+          </div>
+          <div class="transport">
+            <button type="button" id="play" class="control" aria-pressed="false">Pause</button>
+            <button type="button" id="compare" class="control">Hold to see original</button>
+            <label class="field seed">
+              <span>Seed</span>
+              <input type="number" id="seed" inputmode="numeric" step="1" value="0" />
+            </label>
+            <button type="button" id="reseed" class="control">New seed</button>
+            <label class="field">
+              <span>Lines</span>
+              <select id="lines">
+                <option value="240">240</option>
+                <option value="360">360</option>
+                <option value="480" selected>480</option>
+                <option value="576">576</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <aside class="patchbay">
+          <fieldset class="sources">
+            <legend>Signal in</legend>
+            <label class="source"><input type="radio" name="source" value="card" checked /> Test card</label>
+            <label class="source"><input type="radio" name="source" value="camera" /> Camera</label>
+            <label class="source"><input type="radio" name="source" value="file" /> Your image or video</label>
+            <input type="file" id="file" accept="image/*,video/*" hidden />
+            <p class="source-error" id="source-error" role="alert" hidden></p>
+          </fieldset>
+
+          <div class="presets">
+            <h2>Presets</h2>
+            <ul id="preset-list"></ul>
+            <button type="button" id="clear" class="control quiet">Remove all bends</button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="schematic-section" aria-labelledby="schematic-title">
+        <div class="section-head">
+          <h2 id="schematic-title">Signal path</h2>
+          <p>
+            Video passes through these circuits from left to right. Switch on a
+            jumper to bend a circuit; select a circuit to adjust it.
+          </p>
+        </div>
+        <ol class="schematic" id="schematic"></ol>
+        <div class="stage-panel" id="stage-panel" aria-live="polite"></div>
+      </section>
+
+      <section class="cli-section" aria-labelledby="cli-title">
+        <div class="section-head">
+          <h2 id="cli-title">Render your footage</h2>
+          <p>
+            The browser runs the same Rust code as the command-line renderer, so
+            this command reproduces what you see, at full length and with sound.
+          </p>
+        </div>
+        <pre class="command"><code id="command"></code></pre>
+        <div class="cli-actions">
+          <button type="button" id="copy-command" class="control">Copy command</button>
+          <button type="button" id="download-preset" class="control">Download preset</button>
+          <span class="copy-status" id="copy-status" role="status"></span>
+        </div>
+        <p class="cli-note">
+          To use a downloaded preset, pass it as
+          <code>bender --preset bend.json -i input.mp4 -o bent.mp4</code>. Output
+          is H.264 MP4, FFV1 MKV or PNG, chosen by file extension.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        bender-rs is a Rust effect core with a GStreamer renderer, a command-line
+        tool and a desktop app. Licensed MIT or Apache-2.0.
+      </p>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "seed": 5,
+  "clock": {
+    "enabled": true,
+    "sample_hold": 1,
+    "stretch": 1.0,
+    "glitch_rate": 0.06
+  },
+  "hold": {
+    "enabled": true,
+    "rate": 0.7,
+    "band_height": 40,
+    "decay": 0.05
+  },
+  "sync": {
+    "enabled": true,
+    "h_skew": 0.0,
+    "h_jitter": 0.0,
+    "tear_rate": 0.0,
+    "v_roll": 0.4
+  }
+}

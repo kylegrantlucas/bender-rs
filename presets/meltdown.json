@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "seed": 21,
+  "sync": {
+    "enabled": true,
+    "h_skew": 0.0008,
+    "h_jitter": 0.02,
+    "tear_rate": 0.4,
+    "v_roll": 0.1
+  },
+  "clock": {
+    "enabled": true,
+    "sample_hold": 2,
+    "stretch": 1.0,
+    "glitch_rate": 0.03
+  },
+  "data": {
+    "enabled": true,
+    "target": "luma",
+    "swap_a": 7,
+    "swap_b": 6,
+    "stuck_bit": 5,
+    "stuck_mode": "high",
+    "coverage": 0.2
+  },
+  "hold": {
+    "enabled": true,
+    "rate": 0.25,
+    "band_height": 12,
+    "decay": 0.1
+  },
+  "address_a": {
+    "enabled": true,
+    "axis": "column",
+    "bit": 5,
+    "mode": "xor",
+    "partner_axis": "row",
+    "partner_bit": 4,
+    "coverage": 0.3
+  },
+  "invert": {
+    "enabled": true,
+    "mode": "solarize",
+    "threshold": 0.8,
+    "mix": 1.0
+  },
+  "osc": {
+    "enabled": true,
+    "target": "chroma",
+    "frequency": 0.02,
+    "slant": 0.4,
+    "drift": 0.2,
+    "amplitude": 0.18,
+    "luma_coupling": 0.5
+  },
+  "burst": {
+    "enabled": true,
+    "phase": 20.0,
+    "wobble": 30.0,
+    "saturation": 1.6,
+    "killer_rate": 0.08
+  }
+}

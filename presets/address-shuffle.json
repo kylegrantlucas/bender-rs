@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "seed": 0,
+  "address_a": {
+    "enabled": true,
+    "axis": "column",
+    "bit": 6,
+    "mode": "xor",
+    "partner_axis": "row",
+    "partner_bit": 5,
+    "coverage": 1.0
+  },
+  "address_b": {
+    "enabled": true,
+    "axis": "row",
+    "bit": 4,
+    "mode": "stuck_low",
+    "partner_axis": "row",
+    "partner_bit": 7,
+    "coverage": 0.5
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "seed": 3,
+  "sync": {
+    "enabled": true,
+    "h_skew": 0.0,
+    "h_jitter": 0.035,
+    "tear_rate": 0.45,
+    "v_roll": 0.35
+  },
+  "rail": {
+    "enabled": true,
+    "sag": 0.35,
+    "streak": 0.4,
+    "hum": 0.5
+  }
+}
