@@ -133,7 +133,13 @@ impl RenderJob {
             move |pipeline, last| {
                 let filter: BenderFilterElement = gst::glib::Object::builder().build();
                 filter.set_property("settings", BendSettingsBoxed(effect.clone()).to_value());
-                let mut chain: Vec<gst::Element> = vec![filter.upcast(), make("videoconvert")?];
+                let mut chain: Vec<gst::Element> = vec![filter.upcast()];
+                // A still renders a single frame, so only video gains from running
+                // the encoder on its own streaming thread behind a queue.
+                if !matches!(codec, OutputCodec::Png) {
+                    chain.push(make("queue")?);
+                }
+                chain.push(make("videoconvert")?);
                 match codec {
                     OutputCodec::H264 { quantizer } => {
                         let caps = make("capsfilter")?;
@@ -149,7 +155,14 @@ impl RenderJob {
                         enc.set_property_from_str("speed-preset", "medium");
                         chain.extend([caps, enc]);
                     }
-                    OutputCodec::Ffv1 => chain.push(make("avenc_ffv1")?),
+                    OutputCodec::Ffv1 => {
+                        // Without these FFV1 codes 4 slices on one thread. The
+                        // "threads" enum type is registered with the element.
+                        let enc = make("avenc_ffv1")?;
+                        enc.set_property_from_str("threads", "auto");
+                        enc.set_property("slices", 16);
+                        chain.push(enc);
+                    }
                     OutputCodec::Png => {
                         let enc = make("pngenc")?;
                         enc.set_property("snapshot", true);
