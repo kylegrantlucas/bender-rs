@@ -667,6 +667,10 @@ pre {
   font-size: var(--step--1);
 }
 
+.footer p + p {
+  margin-top: var(--space-2);
+}
+
 .cli-note a,
 .footer a {
   color: var(--ink);

@@ -1,7 +1,7 @@
 # bender-rs
 
 [![CI](https://github.com/kylegrantlucas/bender-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/kylegrantlucas/bender-rs/actions/workflows/ci.yml)
-[![Demo site](https://github.com/kylegrantlucas/bender-rs/actions/workflows/pages.yml/badge.svg)](https://kylegrantlucas.github.io/bender-rs/)
+[![Demo site](https://github.com/kylegrantlucas/bender-rs/actions/workflows/pages.yml/badge.svg)](https://klr.dev/bender-rs/)
 [![Latest release](https://img.shields.io/github/v/release/kylegrantlucas/bender-rs?sort=semver)](https://github.com/kylegrantlucas/bender-rs/releases/latest)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![Rust 1.96+](https://img.shields.io/badge/rust-1.96%2B-orange?logo=rust)](https://www.rust-lang.org/tools/install)
@@ -14,9 +14,9 @@ bender-rs is a video filter that imitates circuit bending, the practice of solde
 
 ## Try it in your browser
 
-The [demo site](https://kylegrantlucas.github.io/bender-rs/) runs the effect as WebAssembly on a test card, your webcam, or your own image or video. Switch bends on along the signal path, tune them, and copy the matching `bender` command to render a full-length file with sound.
+The [demo site](https://klr.dev/bender-rs/) runs the effect as WebAssembly on a test card, your webcam, or your own image or video. Switch bends on along the signal path, tune them, and copy the matching `bender` command to render a full-length file with sound.
 
-[![The demo site with the meltdown preset applied](docs/screenshot.png)](https://kylegrantlucas.github.io/bender-rs/)
+[![The demo site with the meltdown preset applied](docs/screenshot.png)](https://klr.dev/bender-rs/)
 
 ## What's included
 
