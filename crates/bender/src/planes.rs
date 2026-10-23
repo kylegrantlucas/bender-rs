@@ -1,4 +1,4 @@
-//! Planar YIQ frame buffers and RGBA8 conversion.
+//! Planar YIQ frame buffers and RGB8/RGBA8 conversion.
 //!
 //! Composite video carries luma (Y) plus two chroma components (I, Q); bending
 //! happens in this domain, as it would inside the real hardware.
@@ -58,6 +58,58 @@ impl YiqPlanes {
         self.y.clone_from(&other.y);
         self.i.clone_from(&other.i);
         self.q.clone_from(&other.q);
+    }
+
+    // Dimensions and buffer bounds are validated by BendEffect::apply_rgb8.
+    pub(crate) fn load_rgb8(&mut self, width: usize, height: usize, src: &[u8], stride: usize) {
+        self.resize(width, height);
+        if width == 0 || height == 0 {
+            return;
+        }
+        self.y
+            .par_chunks_mut(width)
+            .zip(self.i.par_chunks_mut(width))
+            .zip(self.q.par_chunks_mut(width))
+            .enumerate()
+            .for_each(|(r, ((yr, ir), qr))| {
+                let row = &src[r * stride..r * stride + width * 3];
+                for (x, px) in row.as_chunks::<3>().0.iter().enumerate() {
+                    let red = f32::from(px[0]) / 255.0;
+                    let g = f32::from(px[1]) / 255.0;
+                    let b = f32::from(px[2]) / 255.0;
+                    yr[x] = 0.299 * red + 0.587 * g + 0.114 * b;
+                    ir[x] = 0.5959 * red - 0.2746 * g - 0.3213 * b;
+                    qr[x] = 0.2115 * red - 0.5227 * g + 0.3112 * b;
+                }
+            });
+    }
+
+    pub(crate) fn store_rgb8(&self, dst: &mut [u8], stride: usize) {
+        let width = self.width;
+        if width == 0 || self.height == 0 {
+            return;
+        }
+        let to_u8 = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+        dst.par_chunks_mut(stride)
+            .take(self.height)
+            .enumerate()
+            .for_each(|(r, row)| {
+                let base = r * width;
+                let yr = &self.y[base..base + width];
+                let ir = &self.i[base..base + width];
+                let qr = &self.q[base..base + width];
+                for (x, px) in row[..width * 3]
+                    .as_chunks_mut::<3>()
+                    .0
+                    .iter_mut()
+                    .enumerate()
+                {
+                    let (y, i, q) = (yr[x], ir[x], qr[x]);
+                    px[0] = to_u8(y + 0.956 * i + 0.619 * q);
+                    px[1] = to_u8(y - 0.272 * i - 0.647 * q);
+                    px[2] = to_u8(y - 1.106 * i + 1.703 * q);
+                }
+            });
     }
 
     /// Loads gamma-encoded 8-bit pixels and converts them to FCC YIQ.

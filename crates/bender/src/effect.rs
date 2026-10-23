@@ -38,6 +38,43 @@ impl BendEffect {
         run_chain(self, planes, &mut state.work, frame_num);
     }
 
+    /// Applies the effect to packed R, G, B bytes without an alpha channel.
+    ///
+    /// Strides are in bytes. Row padding is neither read nor written, and padding
+    /// after the final row is optional. Empty frames do not access either buffer.
+    /// Working planes and stage memory are reused through `state`.
+    ///
+    /// # Panics
+    /// For nonempty frames, if either stride is less than `width * 3`, either
+    /// buffer cannot hold every active row, or the required size overflows.
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_rgb8(
+        &self,
+        width: usize,
+        height: usize,
+        input: &[u8],
+        input_stride: usize,
+        output: &mut [u8],
+        output_stride: usize,
+        frame_num: u64,
+        state: &mut BendState,
+    ) {
+        if width != 0 && height != 0 {
+            let row_bytes = width.checked_mul(3).expect("RGB row size overflow");
+            for (len, stride) in [(input.len(), input_stride), (output.len(), output_stride)] {
+                assert!(stride >= row_bytes, "RGB stride is shorter than a row");
+                let required = (height - 1)
+                    .checked_mul(stride)
+                    .and_then(|offset| offset.checked_add(row_bytes))
+                    .expect("RGB buffer size overflow");
+                assert!(len >= required, "RGB buffer is too short");
+            }
+        }
+        state.planes.load_rgb8(width, height, input, input_stride);
+        run_chain(self, &mut state.planes, &mut state.work, frame_num);
+        state.planes.store_rgb8(output, output_stride);
+    }
+
     /// Applies the effect to packed 8-bit pixels from `src` into `dst`.
     ///
     /// # Panics

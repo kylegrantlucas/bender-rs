@@ -1,8 +1,8 @@
 //! Circuit-bent video hardware emulation on YIQ float planes.
 //!
 //! [`BendEffect`] holds every setting and *is* the effect: call
-//! [`BendEffect::apply_rgba8`] or [`BendEffect::apply_yiq`] with a per-stream
-//! [`BendState`].
+//! [`BendEffect::apply_rgb8`], [`BendEffect::apply_rgba8`] or
+//! [`BendEffect::apply_yiq`] with a per-stream [`BendState`].
 
 pub mod effect;
 pub mod planes;

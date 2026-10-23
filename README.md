@@ -204,7 +204,9 @@ Version 1 presets still load, but `sync` and `rail` gained settings whose defaul
 
 ## Using the library
 
-The `bender` crate has no media dependencies. Give it RGBA8 or YIQ frames with a frame number, and keep one `BendState` per stream: it holds the memory of the stages that look back in time (the frame store, the sensor, the ISP loops, the datamosh references and the feedback loop). For GStreamer pipelines written in Rust, `bender-gst` provides the effect as an element, `BenderFilterElement`.
+The `bender` crate has no media dependencies. Give it RGB8, RGBA8/BGRA8 or YIQ frames with a frame number, and keep one `BendState` per stream: it holds the memory of the stages that look back in time (the frame store, the sensor, the ISP loops, the datamosh references and the feedback loop). For GStreamer pipelines written in Rust, `bender-gst` provides the effect as an element, `BenderFilterElement`.
+
+Use `BendEffect::apply_rgb8(width, height, input, input_stride, output, output_stride, frame_num, state)` for packed three-byte R, G, B pixels. It converts directly through the reusable YIQ planes without an RGBA staging buffer, using the same color math as `apply_rgba8`. Strides are in bytes; each must cover at least `width * 3` bytes for a nonempty frame. Input and output must cover all active pixels, but final-row padding is optional. Row padding and any bytes after the image are left untouched. Invalid nonempty layouts panic before processing; empty frames do not access either buffer. Existing four-byte consumers should continue using `apply_rgba8`.
 
 | Crate | Contents |
 | --- | --- |
